@@ -1,0 +1,4 @@
+NIDU
+
+Abra o index.html e entre com sua conta. Os dados ficam so na nuvem.
+Veja o README.md para publicar o Apps Script.

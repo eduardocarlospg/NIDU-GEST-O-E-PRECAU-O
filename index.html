@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NIDU — Gestão Financeira</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body class="locked">
+<div class="auth"><div class="auth-box"><div class="brand">NIDU</div><p id="authTitle">Entre para acessar seu painel.</p>
+<form id="authForm"><label class="reg-only" hidden>Nome<input id="authName" autocomplete="name"></label><label>E-mail<input type="email" id="authEmail" required autocomplete="username"></label><label>Senha<input type="password" id="authPass" required minlength="8" autocomplete="current-password"></label><label class="reg-only" hidden>Código de convite (se houver)<input id="authCode"></label><p class="auth-error" id="authError"></p><button class="btn btn-primary" id="authSubmit">Entrar</button><button type="button" class="auth-link" id="authToggle">Criar uma conta</button></form></div></div>
+<div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">NIDU</div>
+      <nav>
+        <button class="nav-item active" data-view="dashboard"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="8" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="15" width="7" height="6" rx="1"/></svg>Dashboard</button>
+        <button class="nav-item" data-view="lancamentos"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Lançamentos</button>
+        <button class="nav-item" data-view="receitas"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 7 7 17M17 17H7V7"/></svg>Receitas</button>
+        <button class="nav-item" data-view="despesas"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10"/></svg>Despesas</button>
+        <button class="nav-item" data-view="estimativas"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>Estimativas</button>
+        <div class="nav-sep"></div>
+        <button class="nav-item" data-view="orcamentos"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>Orçamentos</button>
+        <button class="nav-item" data-view="relatorios"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20v-7M12 20V5M18 20v-10"/></svg>Relatórios</button>
+      </nav>
+      <div class="sidebar-foot"><button class="nav-item" data-view="config"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Configurações</button></div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobileMenu">☰</button>
+        <div><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle">Visão geral do seu negócio</p></div>
+        <div class="top-actions">
+          <button class="btn btn-light" id="refreshBtn">Atualizar</button>
+          <button class="btn btn-primary" id="quickAdd">Novo lançamento</button>
+        </div>
+      </header>
+
+      <div id="toast" class="toast"></div>
+
+      <section class="view active" id="view-dashboard">
+        <div class="period-bar">
+          <label>Período <select id="periodSelect"><option value="month">Este mês</option><option value="quarter">Este trimestre</option><option value="year">Este ano</option><option value="all">Todos</option></select></label>
+          <span id="lastSync">—</span>
+        </div>
+        <div class="cards">
+          <div class="card metric"><div class="metric-icon green">↗</div><div><span>Faturamento</span><strong id="kpiRevenue">R$ 0,00</strong><small id="kpiRevenueSub">Receitas no período</small></div></div>
+          <div class="card metric"><div class="metric-icon red">↘</div><div><span>Despesas</span><strong id="kpiExpense">R$ 0,00</strong><small>Custos e gastos</small></div></div>
+          <div class="card metric"><div class="metric-icon blue">◆</div><div><span>Resultado</span><strong id="kpiProfit">R$ 0,00</strong><small>Receitas − despesas</small></div></div>
+          <div class="card metric"><div class="metric-icon purple">%</div><div><span>Margem</span><strong id="kpiMargin">0,0%</strong><small>Resultado / faturamento</small></div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card chart-card"><div class="card-head"><div><h2>Fluxo financeiro</h2><p>Receitas e despesas por mês</p></div></div><canvas id="cashflowChart"></canvas></div>
+          <div class="card chart-card"><div class="card-head"><div><h2>Despesas por categoria</h2><p>Distribuição dos custos</p></div></div><canvas id="categoryChart"></canvas></div>
+        </div>
+        <div class="card table-card"><div class="card-head"><div><h2>Últimos lançamentos</h2><p>Movimentações mais recentes</p></div><button class="btn btn-light" data-view-link="lancamentos">Ver todos</button></div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th></tr></thead><tbody id="recentTable"></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-lancamentos">
+        <div class="section-tools"><div><h2>Todos os lançamentos</h2><p>Controle suas entradas e saídas.</p></div><div class="tool-group"><input id="searchInput" placeholder="Buscar..."><select id="typeFilter"><option value="">Todos os tipos</option><option value="Receita">Receitas</option><option value="Despesa">Despesas</option></select><button class="btn btn-primary" id="newLaunchBtn">+ Lançamento</button></div></div>
+        <div class="card table-card"><div class="table-wrap"><table><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Cliente/Fornecedor</th><th>Tipo</th><th>Valor</th><th></th></tr></thead><tbody id="launchTable"></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-receitas">
+        <div class="section-tools"><div><h2>Receitas e faturamento</h2><p>Acompanhe o que entra no caixa.</p></div><button class="btn btn-primary" data-open-modal="receita">+ Nova receita</button></div>
+        <div class="cards mini"><div class="card"><span>Receitas no período</span><strong id="revenueTotal">R$ 0,00</strong></div><div class="card"><span>Receitas previstas</span><strong id="revenueForecast">R$ 0,00</strong></div></div>
+        <div class="card table-card"><div class="table-wrap"><table><thead><tr><th>Data</th><th>Cliente</th><th>Descrição</th><th>Status</th><th>Valor</th></tr></thead><tbody id="revenueTable"></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-despesas">
+        <div class="section-tools"><div><h2>Despesas e custos</h2><p>Cadastre e acompanhe todos os gastos.</p></div><button class="btn btn-primary" data-open-modal="despesa">+ Nova despesa</button></div>
+        <div class="cards mini"><div class="card"><span>Total de despesas</span><strong id="expenseTotal">R$ 0,00</strong></div><div class="card"><span>Maior categoria</span><strong id="topCategory">—</strong></div></div>
+        <div class="card table-card"><div class="table-wrap"><table><thead><tr><th>Data</th><th>Fornecedor</th><th>Descrição</th><th>Categoria</th><th>Valor</th></tr></thead><tbody id="expenseTable"></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-estimativas">
+        <div class="section-tools"><div><h2>Estimativas</h2><p>Planeje receitas e despesas futuras.</p></div><button class="btn btn-primary" data-open-modal="estimativa">+ Nova estimativa</button></div>
+        <div class="grid-2"><div class="card chart-card"><div class="card-head"><h2>Planejado × realizado</h2></div><canvas id="forecastChart"></canvas></div><div class="card"><div class="card-head"><h2>Resumo anual</h2></div><div id="forecastSummary" class="forecast-summary"></div></div></div>
+        <div class="card table-card"><div class="table-wrap"><table><thead><tr><th>Mês</th><th>Tipo</th><th>Descrição</th><th>Valor estimado</th><th></th></tr></thead><tbody id="forecastTable"></tbody></table></div></div>
+      </section>
+
+      <section class="view" id="view-orcamentos"><div class="section-tools"><div><h2>Orçamentos</h2><p>Crie propostas e compartilhe com seus clientes.</p></div><button class="btn btn-primary" id="newQuoteBtn">+ Novo orçamento</button></div><div class="cards mini"><div class="card"><span>Orçamentos</span><strong id="quoteCount">0</strong></div><div class="card"><span>Valor total</span><strong id="quoteTotal">R$ 0,00</strong></div></div><div class="card table-card"><div class="table-wrap"><table><thead><tr><th>Nº</th><th>Data</th><th>Cliente</th><th>Validade</th><th>Status</th><th>Total</th><th>Ações</th></tr></thead><tbody id="quoteTable"></tbody></table></div></div></section>
+
+      <section class="view" id="view-relatorios">
+        <div class="section-tools"><div><h2>Relatórios</h2><p>Gere documentos financeiros para análise ou apresentação.</p></div><button class="btn btn-primary" id="pdfBtn">↓ Baixar relatório PDF</button></div>
+        <div class="report-options card"><h3>Relatório financeiro</h3><div class="form-grid"><label>Período inicial<input type="date" id="reportStart"></label><label>Período final<input type="date" id="reportEnd"></label><label>Tipo<select id="reportType"><option value="">Todos</option><option>Receita</option><option>Despesa</option></select></label></div><p class="hint">O PDF inclui resumo, indicadores e tabela de lançamentos.</p></div>
+        <div class="card report-preview"><h2>Prévia</h2><div id="reportPreview"></div></div>
+      </section>
+
+      <section class="view" id="view-config">
+        <div class="section-tools"><div><h2>Conta</h2><p>Seus dados ficam salvos na nuvem e só a sua conta tem acesso.</p></div></div>
+        <div class="card settings"><h3>Conta</h3><p>Conectado como <b id="userName"></b></p><div class="settings-actions"><button class="btn btn-light" id="logoutBtn">Sair</button></div></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="quoteModal"><div class="modal modal-wide"><div class="modal-head"><h2 id="quoteModalTitle">Novo orçamento</h2><button id="closeQuote">×</button></div><form id="quoteForm"><input type="hidden" id="quoteId"><div class="form-grid"><label>Cliente<input id="quoteClient" required></label><label>Data<input type="date" id="quoteDate" required></label><label>Validade<input type="date" id="quoteValidity" required></label><label>Status<select id="quoteStatus"><option>Rascunho</option><option>Enviado</option><option>Aprovado</option><option>Recusado</option></select></label><label>Contato<input id="quoteContact"></label><label>E-mail<input type="email" id="quoteEmail"></label><label class="full">Observações<textarea id="quoteNotes" rows="2"></textarea></label></div><div class="items-head"><h3>Itens</h3><button type="button" class="btn btn-light" id="addQuoteItem">+ Item</button></div><div id="quoteItems"></div><div class="quote-total-box"><span>Total</span><strong id="quoteGrandTotal">R$ 0,00</strong></div><div class="modal-actions"><button type="button" class="btn btn-light" id="cancelQuote">Cancelar</button><button class="btn btn-primary">Salvar orçamento</button></div></form></div></div>
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <div class="modal-head"><h2 id="modalTitle">Novo lançamento</h2><button id="closeModal">×</button></div>
+      <form id="launchForm">
+        <input type="hidden" id="editId">
+        <div class="form-grid">
+          <label>Tipo<select id="formType"><option value="Despesa">Despesa</option><option value="Receita">Receita</option></select></label>
+          <label>Data<input type="date" id="formDate" required></label>
+          <label>Descrição<input id="formDescription" required placeholder="Ex.: Material de escritório"></label>
+          <label>Categoria<select id="formCategory"></select></label>
+          <label>Cliente / Fornecedor<input id="formParty" placeholder="Nome"></label>
+          <label>Valor (R$)<input type="number" id="formAmount" step="0.01" min="0" required></label>
+          <label>Status<select id="formStatus"><option>Pago</option><option>Recebido</option><option>Pendente</option><option>Previsto</option></select></label>
+          <label>Forma de pagamento<input id="formPayment" placeholder="PIX, cartão, boleto..."></label>
+          <label class="full">Observação<textarea id="formNote" rows="3"></textarea></label>
+        </div>
+        <div class="modal-actions"><button type="button" class="btn btn-light" id="cancelModal">Cancelar</button><button class="btn btn-primary">Salvar lançamento</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="forecastModal">
+    <div class="modal">
+      <div class="modal-head"><h2>Nova estimativa</h2><button id="closeForecast">×</button></div>
+      <form id="forecastForm"><div class="form-grid">
+        <label>Mês<input type="month" id="forecastMonth" required></label>
+        <label>Tipo<select id="forecastType"><option>Receita</option><option>Despesa</option></select></label>
+        <label class="full">Descrição<input id="forecastDescription" required placeholder="Ex.: Faturamento esperado"></label>
+        <label>Valor estimado (R$)<input type="number" id="forecastAmount" step="0.01" min="0" required></label>
+      </div><div class="modal-actions"><button type="button" class="btn btn-light" id="cancelForecast">Cancelar</button><button class="btn btn-primary">Salvar estimativa</button></div></form>
+    </div>
+  </div>
+  <div class="loader" id="loader" role="status" aria-live="polite"><div class="loader-bar"></div><div class="loader-pill"><span class="spin"></span><span id="loaderText">Carregando…</span></div></div>
+  <script src="app.js"></script>
+</body>
+</html>
